@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VUAA Trading Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0d1117;
+            color: #f0f6fc;
+            padding: 10px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: linear-gradient(135deg, #1e293b, #334155);
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .header h1 {
+            color: #22d3ee;
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+        }
+
+        .api-config {
+            background-color: #161b22;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #30363d;
+        }
+
+        .api-config h3 {
+            color: #f78166;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #7d8590;
+            font-size: 0.9rem;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 10px;
+            background-color: #21262d;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            color: #f0f6fc;
+            font-size: 14px;
+        }
+
+        .input-group select {
+            width: 100%;
+            padding: 10px;
+            background-color: #21262d;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            color: #f0f6fc;
+            font-size: 14px;
+        }
+
+        .input-group select:focus {
+            outline: none;
+            border-color: #22d3ee;
+            box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.1);
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #22d3ee;
+            box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.1);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #22d3ee, #0891b2);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(34, 211, 238, 0.3);
+        }
+
+        .btn:disabled {
+            background: #6b7280;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .chart-container {
+            background-color: #161b22;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid #30363d;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .chart-title {
+            color: #22d3ee;
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 250px;
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 250px;
+            color: #7d8590;
+        }
+
+        .error {
+            color: #f85149;
+            text-align: center;
+            padding: 20px;
+            background-color: rgba(248, 81, 73, 0.1);
+            border-radius: 6px;
+            border: 1px solid rgba(248, 81, 73, 0.2);
+        }
+
+        .status {
+            text-align: center;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        .status.success {
+            background-color: rgba(46, 160, 67, 0.1);
+            color: #2ea043;
+            border: 1px solid rgba(46, 160, 67, 0.2);
+        }
+
+        .status.error {
+            background-color: rgba(248, 81, 73, 0.1);
+            color: #f85149;
+            border: 1px solid rgba(248, 81, 73, 0.2);
+        }
+
+        .last-updated {
+            text-align: center;
+            color: #7d8590;
+            font-size: 0.8rem;
+            margin-top: 10px;
+        }
+
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .chart-wrapper {
+                height: 220px;
+            }
+            
+            body {
+                padding: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📈 VUAA Trading Dashboard</h1>
+            <p>Παρακολούθηση τιμών σε πραγματικό χρόνο - Δεδομένα τελευταίας εβδομάδας</p>
+        </div>
+
+        <div class="update-section" style="text-align: center; margin-bottom: 20px;">
+            <button class="btn" onclick="updateAllCharts()">🔄 Ενημέρωση Διαγραμμάτων (Τελευταία Εβδομάδα)</button>
+            <div id="status" class="status" style="display: none;"></div>
+        </div>
+
+        <div class="chart-container">
+            <div class="chart-title">VUAA.L (USD)</div>
+            <div class="chart-wrapper">
+                <canvas id="vuaaLChart"></canvas>
+                <div id="vuaaLLoading" class="loading">Φόρτωση δεδομένων...</div>
+            </div>
+            <div class="last-updated" id="vuaaLUpdated"></div>
+        </div>
+
+        <div class="chart-container">
+            <div class="chart-title">VUAA.DE (EUR)</div>
+            <div class="chart-wrapper">
+                <canvas id="vuaaDeChart"></canvas>
+                <div id="vuaaDeLoading" class="loading">Φόρτωση δεδομένων...</div>
+            </div>
+            <div class="last-updated" id="vuaaDeUpdated"></div>
+        </div>
+
+        <div class="chart-container">
+            <div class="chart-title">EUR/USD</div>
+            <div class="chart-wrapper">
+                <canvas id="eurusdChart"></canvas>
+                <div id="eurusdLoading" class="loading">Φόρτωση δεδομένων...</div>
+            </div>
+            <div class="last-updated" id="eurusdUpdated"></div>
+        </div>
+
+        <div class="api-config">
+            <h3>🔧 Ρυθμίσεις API</h3>
+            <div class="input-group">
+                <label for="apiProvider">API Provider:</label>
+                <select id="apiProvider" onchange="updateApiSettings()">
+                    <option value="alphavantage">Alpha Vantage (25 req/day - FREE)</option>
+                    <option value="finnhub">Finnhub (60 req/min - FREE)</option>
+                    <option value="polygon">Polygon.io (5 req/min - FREE)</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label for="apiKey">API Key:</label>
+                <input type="text" id="apiKey" placeholder="Εισάγετε το API key σας">
+                <div class="api-links" id="apiLinks">
+                    <p style="margin-top: 5px; font-size: 0.8rem; color: #7d8590;">
+                        📝 Δωρεάν API Key: 
+                        <a href="https://www.alphavantage.co/support/#api-key" target="_blank" style="color: #22d3ee;">Alpha Vantage</a> | 
+                        <a href="https://finnhub.io/register" target="_blank" style="color: #22d3ee;">Finnhub</a> | 
+                        <a href="https://polygon.io/dashboard/signup" target="_blank" style="color: #22d3ee;">Polygon.io</a>
+                    </p>
+                </div>
+            </div>
+            <div class="input-group">
+                <label for="apiUrl">API URL:</label>
+                <input type="url" id="apiUrl" placeholder="https://www.alphavantage.co/query" value="https://www.alphavantage.co/query" readonly>
+            </div>
+        </div>
+
+        <div class="info-panel" style="background-color: #0f172a; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #1e293b;">
+            <h4 style="color: #22d3ee; margin-bottom: 10px;">ℹ️ Οδηγίες Χρήσης</h4>
+            <ul style="color: #94a3b8; font-size: 0.9rem; margin: 0; padding-left: 20px;">
+                <li>Επιλέξτε API provider (προτείνεται Alpha Vantage για αρχάριους)</li>
+                <li>Πάρτε δωρεάν API key από τους συνδέσμους παραπάνω</li>
+                <li>Τα διαγράμματα δείχνουν τις τιμές των τελευταίων 7 ημερών</li>
+                <li>Αυτόματη ενημέρωση κάθε 5 λεπτά (αν έχει API key)</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // API configurations
+        const apiConfigs = {
+            alphavantage: {
+                url: 'https://www.alphavantage.co/query',
+                symbols: {
+                    'VUAA.L': 'VUAA.LON',
+                    'VUAA.DE': 'ETR:VUAA',
+                    'EURUSD': 'EUR/USD'
+                }
+            },
+            finnhub: {
+                url: 'https://finnhub.io/api/v1',
+                symbols: {
+                    'VUAA.L': 'VUAA.L',
+                    'VUAA.DE': 'VUAA.DE', 
+                    'EURUSD': 'OANDA:EUR_USD'
+                }
+            },
+            polygon: {
+                url: 'https://api.polygon.io/v2',
+                symbols: {
+                    'VUAA.L': 'VUAA',
+                    'VUAA.DE': 'VUAA',
+                    'EURUSD': 'C:EURUSD'
+                }
+            }
+        };
+
+        // Global variables
+        let charts = {};
+        
+        // Update API settings based on provider selection
+        function updateApiSettings() {
+            const provider = document.getElementById('apiProvider').value;
+            const config = apiConfigs[provider];
+            document.getElementById('apiUrl').value = config.url;
+        }
+
+        // Get date range for last week
+        function getLastWeekDates() {
+            const today = new Date();
+            const lastWeek = new Date(today);
+            lastWeek.setDate(today.getDate() - 7);
+            
+            return {
+                from: lastWeek.toISOString().split('T')[0],
+                to: today.toISOString().split('T')[0]
+            };
+        }
+        
+        // Chart configuration
+        const chartConfig = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                x: {
+                    grid: {
+                        color: '#30363d'
+                    },
+                    ticks: {
+                        color: '#7d8590',
+                        maxTicksLimit: 6
+                    }
+                },
+                y: {
+                    grid: {
+                        color: '#30363d'
+                    },
+                    ticks: {
+                        color: '#7d8590'
+                    }
+                }
+            },
+            elements: {
+                line: {
+                    tension: 0.3
+                },
+                point: {
+                    radius: 2,
+                    hoverRadius: 4
+                }
+            }
+        };
+
+        // Initialize charts
+        function initializeCharts() {
+            const ctx1 = document.getElementById('vuaaLChart').getContext('2d');
+            const ctx2 = document.getElementById('vuaaDeChart').getContext('2d');
+            const ctx3 = document.getElementById('eurusdChart').getContext('2d');
+
+            charts.vuaaL = new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'VUAA.L',
+                        data: [],
+                        borderColor: '#22d3ee',
+                        backgroundColor: 'rgba(34, 211, 238, 0.1)',
+                        fill: true
+                    }]
+                },
+                options: chartConfig
+            });
+
+            charts.vuaaDe = new Chart(ctx2, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'VUAA.DE',
+                        data: [],
+                        borderColor: '#f59e0b',
+                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                        fill: true
+                    }]
+                },
+                options: chartConfig
+            });
+
+            charts.eurusd = new Chart(ctx3, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'EUR/USD',
+                        data: [],
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        fill: true
+                    }]
+                },
+                options: chartConfig
+            });
+        }
+
+        // Show/hide loading indicators
+        function showLoading(symbol) {
+            document.getElementById(`${symbol}Loading`).style.display = 'flex';
+            document.getElementById(`${symbol}Chart`).style.display = 'none';
+        }
+
+        function hideLoading(symbol) {
+            document.getElementById(`${symbol}Loading`).style.display = 'none';
+            document.getElementById(`${symbol}Chart`).style.display = 'block';
+        }
+
+        // Show status message
+        function showStatus(message, type = 'success') {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = message;
+            statusEl.className = `status ${type}`;
+            statusEl.style.display = 'block';
+            
+            setTimeout(() => {
+                statusEl.style.display = 'none';
+            }, 3000);
+        }
+
+        // Update last updated time
+        function updateLastUpdated(symbol) {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('el-GR');
+            document.getElementById(`${symbol}Updated`).textContent = `Τελευταία ενημέρωση: ${timeString}`;
+        }
+
+        // Fetch data from API based on provider
+        async function fetchData(symbol) {
+            const apiKey = document.getElementById('apiKey').value;
+            const provider = document.getElementById('apiProvider').value;
+            const config = apiConfigs[provider];
+            
+            if (!apiKey) {
+                throw new Error('Παρακαλώ εισάγετε το API key');
+            }
+            
+            const mappedSymbol = config.symbols[symbol] || symbol;
+            const dates = getLastWeekDates();
+            let url, response;
+            
+            try {
+                switch (provider) {
+                    case 'alphavantage':
+                        if (symbol === 'EURUSD') {
+                            url = `${config.url}?function=FX_DAILY&from_symbol=EUR&to_symbol=USD&apikey=${apiKey}`;
+                        } else {
+                            url = `${config.url}?function=TIME_SERIES_DAILY&symbol=${mappedSymbol}&apikey=${apiKey}`;
+                        }
+                        break;
+                        
+                    case 'finnhub':
+                        const fromTimestamp = Math.floor(new Date(dates.from).getTime() / 1000);
+                        const toTimestamp = Math.floor(new Date(dates.to).getTime() / 1000);
+                        url = `${config.url}/stock/candle?symbol=${mappedSymbol}&resolution=D&from=${fromTimestamp}&to=${toTimestamp}&token=${apiKey}`;
+                        break;
+                        
+                    case 'polygon':
+                        url = `${config.url}/aggs/ticker/${mappedSymbol}/range/1/day/${dates.from}/${dates.to}?apikey=${apiKey}`;
+                        break;
+                        
+                    default:
+                        throw new Error('Άγνωστος API provider');
+                }
+                
+                response = await fetch(url);
+                
+                if (!response.ok) {
+                    throw new Error(`API Error: ${response.status} ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                return { data, provider, symbol };
+                
+            } catch (error) {
+                console.error('Fetch error:', error);
+                throw error;
+            }
+        }
+
+        // Process API data to chart format based on provider
+        function processData(responseData) {
+            const { data, provider, symbol } = responseData;
+            const labels = [];
+            const prices = [];
+            
+            try {
+                switch (provider) {
+                    case 'alphavantage':
+                        let timeSeriesKey;
+                        if (symbol === 'EURUSD') {
+                            timeSeriesKey = 'Time Series FX (Daily)';
+                        } else {
+                            timeSeriesKey = 'Time Series (Daily)';
+                        }
+                        
+                        if (!data[timeSeriesKey]) {
+                            throw new Error('Δεν βρέθηκαν δεδομένα για το σύμβολο');
+                        }
+                        
+                        const timeSeries = data[timeSeriesKey];
+                        const sortedDates = Object.keys(timeSeries).sort();
+                        
+                        // Get last 7 days
+                        const last7Days = sortedDates.slice(-7);
+                        
+                        last7Days.forEach(date => {
+                            const dateObj = new Date(date);
+                            labels.push(dateObj.toLocaleDateString('el-GR', { 
+                                weekday: 'short',
+                                day: 'numeric',
+                                month: 'short'
+                            }));
+                            prices.push(parseFloat(timeSeries[date]['4. close']));
+                        });
+                        break;
+                        
+                    case 'finnhub':
+                        if (data.s !== 'ok') {
+                            throw new Error('API επέστρεψε σφάλμα');
+                        }
+                        
+                        if (!data.c || data.c.length === 0) {
+                            throw new Error('Δεν βρέθηκαν δεδομένα');
+                        }
+                        
+                        data.t.forEach((timestamp, index) => {
+                            const date = new Date(timestamp * 1000);
+                            labels.push(date.toLocaleDateString('el-GR', { 
+                                weekday: 'short',
+                                day: 'numeric',
+                                month: 'short'
+                            }));
+                            prices.push(data.c[index]);
+                        });
+                        break;
+                        
+                    case 'polygon':
+                        if (!data.results || data.results.length === 0) {
+                            throw new Error('Δεν βρέθηκαν δεδομένα');
+                        }
+                        
+                        data.results.forEach(item => {
+                            const date = new Date(item.t);
+                            labels.push(date.toLocaleDateString('el-GR', { 
+                                weekday: 'short',
+                                day: 'numeric',
+                                month: 'short'
+                            }));
+                            prices.push(item.c);
+                        });
+                        break;
+                        
+                    default:
+                        throw new Error('Άγνωστος API provider');
+                }
+                
+                if (labels.length === 0) {
+                    throw new Error('Δεν βρέθηκαν δεδομένα για την τελευταία εβδομάδα');
+                }
+                
+                return { labels, prices };
+                
+            } catch (error) {
+                console.error('Process data error:', error);
+                throw error;
+            }
+        }
+
+        // Update individual chart
+        async function updateChart(symbol, chartKey) {
+            try {
+                showLoading(chartKey);
+                
+                const responseData = await fetchData(symbol);
+                const processedData = processData(responseData);
+                
+                charts[chartKey].data.labels = processedData.labels;
+                charts[chartKey].data.datasets[0].data = processedData.prices;
+                charts[chartKey].update();
+                
+                updateLastUpdated(chartKey);
+                hideLoading(chartKey);
+                
+                return true;
+            } catch (error) {
+                hideLoading(chartKey);
+                
+                // Show error in chart container
+                const chartWrapper = document.querySelector(`#${chartKey}Chart`).parentElement;
+                chartWrapper.innerHTML = `<div class="error">❌ Σφάλμα: ${error.message}</div>`;
+                
+                console.error(`Error updating ${symbol}:`, error);
+                return false;
+            }
+        }
+
+        // Update all charts
+        async function updateAllCharts() {
+            const btn = document.querySelector('.btn');
+            btn.disabled = true;
+            btn.textContent = '🔄 Ενημέρωση...';
+            
+            try {
+                const symbols = [
+                    { symbol: 'VUAA.L', chartKey: 'vuaaL' },
+                    { symbol: 'VUAA.DE', chartKey: 'vuaaDe' },
+                    { symbol: 'EURUSD', chartKey: 'eurusd' }
+                ];
+                
+                const results = await Promise.all(
+                    symbols.map(({ symbol, chartKey }) => updateChart(symbol, chartKey))
+                );
+                
+                const successCount = results.filter(result => result).length;
+                
+                if (successCount === symbols.length) {
+                    showStatus('✅ Όλα τα διαγράμματα ενημερώθηκαν επιτυχώς!', 'success');
+                } else if (successCount > 0) {
+                    showStatus(`⚠️ ${successCount}/${symbols.length} διαγράμματα ενημερώθηκαν`, 'error');
+                } else {
+                    showStatus('❌ Αποτυχία ενημέρωσης διαγραμμάτων', 'error');
+                }
+                
+            } catch (error) {
+                showStatus(`❌ Σφάλμα: ${error.message}`, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '🔄 Ενημέρωση Διαγραμμάτων';
+            }
+        }
+
+        // Initialize when page loads
+        window.addEventListener('load', () => {
+            initializeCharts();
+            
+            // Auto-update every 5 minutes if API key is set
+            setInterval(() => {
+                if (document.getElementById('apiKey').value) {
+                    updateAllCharts();
+                }
+            }, 5 * 60 * 1000);
+        });
+
+        // Save API settings to localStorage
+        document.getElementById('apiKey').addEventListener('change', (e) => {
+            localStorage.setItem('vuaa_api_key', e.target.value);
+        });
+
+        document.getElementById('apiProvider').addEventListener('change', (e) => {
+            localStorage.setItem('vuaa_api_provider', e.target.value);
+            updateApiSettings();
+        });
+
+        // Load API settings from localStorage
+        window.addEventListener('load', () => {
+            const savedApiKey = localStorage.getItem('vuaa_api_key');
+            const savedApiProvider = localStorage.getItem('vuaa_api_provider');
+            
+            if (savedApiKey) {
+                document.getElementById('apiKey').value = savedApiKey;
+            }
+            
+            if (savedApiProvider) {
+                document.getElementById('apiProvider').value = savedApiProvider;
+                updateApiSettings();
+            }
+        });
+    </script>
+</body>
+</html>
