@@ -219,7 +219,6 @@
             <div class="chart-title">VUAA.L (USD)</div>
             <div class="chart-wrapper">
                 <canvas id="vuaaLChart"></canvas>
-                <div id="vuaaLLoading" class="loading">Φόρτωση δεδομένων...</div>
             </div>
             <div class="last-updated" id="vuaaLUpdated"></div>
         </div>
@@ -228,7 +227,6 @@
             <div class="chart-title">VUAA.DE (EUR)</div>
             <div class="chart-wrapper">
                 <canvas id="vuaaDeChart"></canvas>
-                <div id="vuaaDeLoading" class="loading">Φόρτωση δεδομένων...</div>
             </div>
             <div class="last-updated" id="vuaaDeUpdated"></div>
         </div>
@@ -237,7 +235,6 @@
             <div class="chart-title">EUR/USD</div>
             <div class="chart-wrapper">
                 <canvas id="eurusdChart"></canvas>
-                <div id="eurusdLoading" class="loading">Φόρτωση δεδομένων...</div>
             </div>
             <div class="last-updated" id="eurusdUpdated"></div>
         </div>
@@ -423,17 +420,6 @@
             });
         }
 
-        // Show/hide loading indicators
-        function showLoading(symbol) {
-            document.getElementById(`${symbol}Loading`).style.display = 'flex';
-            document.getElementById(`${symbol}Chart`).style.display = 'none';
-        }
-
-        function hideLoading(symbol) {
-            document.getElementById(`${symbol}Loading`).style.display = 'none';
-            document.getElementById(`${symbol}Chart`).style.display = 'block';
-        }
-
         // Show status message
         function showStatus(message, type = 'success') {
             const statusEl = document.getElementById('status');
@@ -598,8 +584,6 @@
         // Update individual chart
         async function updateChart(symbol, chartKey) {
             try {
-                showLoading(chartKey);
-                
                 const responseData = await fetchData(symbol);
                 const processedData = processData(responseData);
                 
@@ -608,12 +592,9 @@
                 charts[chartKey].update();
                 
                 updateLastUpdated(chartKey);
-                hideLoading(chartKey);
                 
                 return true;
             } catch (error) {
-                hideLoading(chartKey);
-                
                 // Show error in chart container
                 const chartWrapper = document.querySelector(`#${chartKey}Chart`).parentElement;
                 chartWrapper.innerHTML = `<div class="error">❌ Σφάλμα: ${error.message}</div>`;
