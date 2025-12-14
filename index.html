@@ -314,6 +314,11 @@
 
         // Global variables
         let charts = {};
+        let chartUpdateStatus = {
+            vuaaL: false,
+            vuaaDe: false,
+            eurusd: false
+        };
         
         // Update API settings based on provider selection
         function updateApiSettings() {
@@ -514,7 +519,7 @@
                         }
                         
                         if (!data[timeSeriesKey]) {
-                            throw new Error('Δεν βρέθηκαν δεδομένα για το σύμβολο');
+                            throw new Error('Δεν βρέθηκαν δεδομένα για το σύμβολο ' + symbol);
                         }
                         
                         const timeSeries = data[timeSeriesKey];
@@ -592,19 +597,56 @@
                 const responseData = await fetchData(symbol);
                 const processedData = processData(responseData);
                 
+                // Remove any existing error messages
+                const chartWrapper = document.querySelector(`#${chartKey}Chart`).parentElement;
+                const existingError = chartWrapper.querySelector('.error');
+                if (existingError) {
+                    existingError.remove();
+                }
+                
+                // Make sure canvas is visible
+                const canvas = document.querySelector(`#${chartKey}Chart`);
+                if (canvas) {
+                    canvas.style.display = 'block';
+                }
+                
                 charts[chartKey].data.labels = processedData.labels;
                 charts[chartKey].data.datasets[0].data = processedData.prices;
                 charts[chartKey].update();
                 
                 updateLastUpdated(chartKey);
                 
+                // Mark as successfully updated
+                chartUpdateStatus[chartKey] = true;
+                
                 return true;
             } catch (error) {
-                // Show error in chart container
-                const chartWrapper = document.querySelector(`#${chartKey}Chart`).parentElement;
-                chartWrapper.innerHTML = `<div class="error">❌ Σφάλμα: ${error.message}</div>`;
-                
                 console.error(`Error updating ${symbol}:`, error);
+                
+                // Show error message without destroying the canvas
+                const canvas = document.querySelector(`#${chartKey}Chart`);
+                if (canvas) {
+                    canvas.style.display = 'none';
+                }
+                
+                const chartWrapper = document.querySelector(`#${chartKey}Chart`)?.parentElement;
+                if (chartWrapper) {
+                    // Remove any existing error
+                    const existingError = chartWrapper.querySelector('.error');
+                    if (existingError) {
+                        existingError.remove();
+                    }
+                    
+                    // Add new error message
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'error';
+                    errorDiv.textContent = `❌ Σφάλμα: ${error.message}`;
+                    chartWrapper.appendChild(errorDiv);
+                }
+                
+                // Mark as not updated (so it will retry)
+                chartUpdateStatus[chartKey] = false;
+                
                 return false;
             }
         }
@@ -622,16 +664,27 @@
                     { symbol: 'EURUSD', chartKey: 'eurusd' }
                 ];
                 
+                // Filter to update only charts that haven't been successfully updated
+                const chartsToUpdate = symbols.filter(({ chartKey }) => !chartUpdateStatus[chartKey]);
+                
+                if (chartsToUpdate.length === 0) {
+                    showStatus('✅ Όλα τα διαγράμματα είναι ήδη ενημερωμένα!', 'success');
+                    btn.disabled = false;
+                    btn.textContent = '🔄 Ενημέρωση Διαγραμμάτων';
+                    return;
+                }
+                
                 const results = await Promise.all(
-                    symbols.map(({ symbol, chartKey }) => updateChart(symbol, chartKey))
+                    chartsToUpdate.map(({ symbol, chartKey }) => updateChart(symbol, chartKey))
                 );
                 
                 const successCount = results.filter(result => result).length;
+                const totalUpdatedCount = Object.values(chartUpdateStatus).filter(status => status).length;
                 
-                if (successCount === symbols.length) {
+                if (totalUpdatedCount === symbols.length) {
                     showStatus('✅ Όλα τα διαγράμματα ενημερώθηκαν επιτυχώς!', 'success');
                 } else if (successCount > 0) {
-                    showStatus(`⚠️ ${successCount}/${symbols.length} διαγράμματα ενημερώθηκαν`, 'error');
+                    showStatus(`⚠️ ${successCount}/${chartsToUpdate.length} διαγράμματα ενημερώθηκαν (${totalUpdatedCount}/${symbols.length} συνολικά)`, 'success');
                 } else {
                     showStatus('❌ Αποτυχία ενημέρωσης διαγραμμάτων', 'error');
                 }
