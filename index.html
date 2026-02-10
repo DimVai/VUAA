@@ -591,6 +591,11 @@
             }
         }
 
+        // Sleep helper function for rate limiting
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
         // Update individual chart
         async function updateChart(symbol, chartKey) {
             try {
@@ -674,9 +679,18 @@
                     return;
                 }
                 
-                const results = await Promise.all(
-                    chartsToUpdate.map(({ symbol, chartKey }) => updateChart(symbol, chartKey))
-                );
+                // Update charts sequentially with 2 second delay to avoid rate limiting
+                const results = [];
+                for (let i = 0; i < chartsToUpdate.length; i++) {
+                    const { symbol, chartKey } = chartsToUpdate[i];
+                    const result = await updateChart(symbol, chartKey);
+                    results.push(result);
+                    
+                    // Add 2 second delay between requests (except after the last one)
+                    if (i < chartsToUpdate.length - 1) {
+                        await sleep(1100);
+                    }
+                }
                 
                 const successCount = results.filter(result => result).length;
                 const totalUpdatedCount = Object.values(chartUpdateStatus).filter(status => status).length;
