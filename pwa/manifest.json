@@ -1,0 +1,21 @@
+{
+    "name": "VUAA Dashboard",
+    "short_name": "VUAA",
+    "start_url": "../",
+    "scope": "..",
+    "categories": ["finance"],
+    "display": "standalone",    
+    "background_color": "#0d1117",
+    "theme_color": "#0d1117",
+    "description": "VUAA Dashboard shows the current value of the VUAA in USD and EUR.",
+    "orientation": "portrait",
+    "lang": "el",
+    "icons": [
+        {
+            "src": "icon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "any maskable"
+        }
+      ]
+}
