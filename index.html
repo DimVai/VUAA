@@ -287,7 +287,6 @@
                 <li>Επιλέξτε API provider (προτείνεται Alpha Vantage για αρχάριους)</li>
                 <li>Πάρτε δωρεάν API key από τους συνδέσμους παραπάνω</li>
                 <li>Τα διαγράμματα δείχνουν τις τιμές των τελευταίων 7 ημερών</li>
-                <li>Αυτόματη ενημέρωση κάθε 5 λεπτά (αν έχει API key)</li>
             </ul>
         </div>
     </div>
@@ -723,13 +722,6 @@
         // Initialize when page loads
         window.addEventListener('load', () => {
             initializeCharts();
-            
-            // Auto-update every 5 minutes if API key is set
-            setInterval(() => {
-                if (document.getElementById('apiKey').value) {
-                    updateAllCharts();
-                }
-            }, 5 * 60 * 1000);
         });
 
         // Save API settings to localStorage
